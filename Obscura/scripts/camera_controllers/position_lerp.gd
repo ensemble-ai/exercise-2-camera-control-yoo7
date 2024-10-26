@@ -1,7 +1,7 @@
 class_name PositionLerp
 extends CameraControllerBase
 
-#TODO: hyper speed
+
 @export var follow_speed := target.BASE_SPEED * 0.8
 @export var catchup_speed := target.BASE_SPEED
 @export var leash_distance:float
@@ -20,29 +20,29 @@ func _process(delta: float) -> void:
 	
 	if draw_camera_logic:
 		draw_logic()
+
+	var speed := follow_speed
 	
-	var tpos = target.global_position
-	var cpos = global_position
+	#TODO var direction = (Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
-	#boundary checks
-	#left
-	var diff_between_left_edges = (tpos.x - target.WIDTH / 2.0) - (cpos.x - box_width / 2.0)
-	if diff_between_left_edges < 0:
-		global_position.x += diff_between_left_edges
-	#right
-	var diff_between_right_edges = (tpos.x + target.WIDTH / 2.0) - (cpos.x + box_width / 2.0)
-	if diff_between_right_edges > 0:
-		global_position.x += diff_between_right_edges
-	#top
-	var diff_between_top_edges = (tpos.z - target.HEIGHT / 2.0) - (cpos.z - box_height / 2.0)
-	if diff_between_top_edges < 0:
-		global_position.z += diff_between_top_edges
-	#bottom
-	var diff_between_bottom_edges = (tpos.z + target.HEIGHT / 2.0) - (cpos.z + box_height / 2.0)
-	if diff_between_bottom_edges > 0:
-		global_position.z += diff_between_bottom_edges
-		
+	var x_diff = target.position.x - position.x
+	var z_diff = target.position.z - position.z
+	
+	if _distance(position, target.position) >= leash_distance:
+		speed = target.speed
+	elif target.velocity.is_zero_approx():
+		# Catch up if vessel is stopped
+		speed = catchup_speed
+
+	# Camera keeps moving according to autoscroll speed
+	global_position.x += x_diff * speed * delta
+	global_position.z += z_diff * speed * delta
+
 	super(delta)
+
+
+func _distance(from: Vector3, to: Vector3) -> float:
+	return sqrt(pow(to.x - from.x, 2) + pow(to.y - from.y, 2))
 
 
 func draw_logic() -> void:
@@ -59,11 +59,11 @@ func draw_logic() -> void:
 	var bottom:float = box_height / 2
 	
 	immediate_mesh.surface_begin(Mesh.PRIMITIVE_LINES, material)
-	immediate_mesh.surface_add_vertex(Vector3(0, 0, position.z + 10.0))
-	immediate_mesh.surface_add_vertex(Vector3(0, 0, position.z - 10.0))
+	immediate_mesh.surface_add_vertex(Vector3(0, 0, top))
+	immediate_mesh.surface_add_vertex(Vector3(0, 0, bottom))
 	
-	immediate_mesh.surface_add_vertex(Vector3(position.x - 10.0, 0, 0))
-	immediate_mesh.surface_add_vertex(Vector3(position.x + 10.0, 0, 0))
+	immediate_mesh.surface_add_vertex(Vector3(right, 0, 0))
+	immediate_mesh.surface_add_vertex(Vector3(left, 0, 0))
 	
 	immediate_mesh.surface_end()
 

@@ -86,9 +86,9 @@ script = ExtResource("3_4fllx")
 [node name="PositionLerpCamera" parent="." node_paths=PackedStringArray("target") instance=ExtResource("3_ttnp6")]
 transform = Transform3D(1, 0, 0, 0, 1.19249e-08, 1, 0, -1, 1.19249e-08, 0, 30, 0)
 script = ExtResource("7_3474t")
-follow_speed = 40.0
-catchup_speed = 50
-leash_distance = 0.0
+follow_speed = 20.0
+catchup_speed = 25
+leash_distance = 200.0
 target = NodePath("../Vessel")
 
 [node name="debug" type="Label" parent="PositionLerpCamera"]
