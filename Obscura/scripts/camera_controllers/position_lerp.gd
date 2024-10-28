@@ -8,6 +8,7 @@ extends CameraControllerBase
 @export var box_width:float = 10.0
 @export var box_height:float = 10.0
 
+var SNAP_DISTANCE := 0.1
 
 func _ready() -> void:
 	super()
@@ -22,8 +23,16 @@ func _process(delta: float) -> void:
 	if draw_camera_logic:
 		draw_logic()
 
-	var x_diff = target.position.x - position.x
-	var z_diff = target.position.z - position.z
+	var x_dir = 1 if target.position.x > position.x else -1
+	var z_dir = 1 if target.position.z > position.z else -1
+	
+	if abs(target.position.x - position.x) <= SNAP_DISTANCE:
+		position.x = target.position.x
+		x_dir = 0
+	
+	if abs(target.position.z - position.z) <= SNAP_DISTANCE:
+		position.z = target.position.z
+		z_dir = 0
 	
 	var speed := follow_speed * target.speed
 
@@ -33,8 +42,8 @@ func _process(delta: float) -> void:
 		speed = target.speed
 
 	# Camera moves in direction of target
-	global_position.x += x_diff * speed * delta
-	global_position.z += z_diff * speed * delta
+	global_position.x += x_dir * speed * delta
+	global_position.z += z_dir * speed * delta
 
 	super(delta)
 
