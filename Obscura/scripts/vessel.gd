@@ -12,9 +12,9 @@ const BASE_SPEED = 50
 const HYPER_SPEED = 300
 
 var speed := 0.0
+var direction:Vector3
 
 func _physics_process(_delta):
-	
 	speed = BASE_SPEED
 	$ParticleTrail.visible = false 
 	if Input.is_action_pressed("ui_accept"):
@@ -36,7 +36,7 @@ func _physics_process(_delta):
 		Input.get_action_strength("ui_down") - Input.get_action_strength("ui_up")
 		).limit_length(1.0)
 	
-	var direction = (Vector3(input_dir.x, 0, input_dir.y)).normalized()
+	direction = (Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	#var direction = (transform.basis * Vector3(input_dir.x, 0, input_dir.y)).normalized()
 	
 	if direction:

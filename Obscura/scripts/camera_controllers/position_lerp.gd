@@ -2,8 +2,8 @@ class_name PositionLerp
 extends CameraControllerBase
 
 
-@export var follow_speed := target.BASE_SPEED * 0.8
-@export var catchup_speed := target.BASE_SPEED
+@export var follow_speed:float  # To be used as a ratio of the player's current speed
+@export var catchup_speed:float
 @export var leash_distance:float
 @export var box_width:float = 10.0
 @export var box_height:float = 10.0
@@ -11,7 +11,8 @@ extends CameraControllerBase
 
 func _ready() -> void:
 	super()
-	position = target.position
+	draw_camera_logic = true
+	global_position = target.global_position
 	
 
 func _process(delta: float) -> void:
@@ -21,20 +22,17 @@ func _process(delta: float) -> void:
 	if draw_camera_logic:
 		draw_logic()
 
-	var speed := follow_speed
-	
-	#TODO var direction = (Vector3(input_dir.x, 0, input_dir.y)).normalized()
-	
 	var x_diff = target.position.x - position.x
 	var z_diff = target.position.z - position.z
 	
-	if _distance(position, target.position) >= leash_distance:
-		speed = target.speed
-	elif target.velocity.is_zero_approx():
-		# Catch up if vessel is stopped
-		speed = catchup_speed
+	var speed := follow_speed * target.speed
 
-	# Camera keeps moving according to autoscroll speed
+	if target.velocity.is_zero_approx():
+		speed = catchup_speed * target.BASE_SPEED
+	elif _distance(position, target.position) >= leash_distance:
+		speed = target.speed
+
+	# Camera moves in direction of target
 	global_position.x += x_diff * speed * delta
 	global_position.z += z_diff * speed * delta
 
@@ -42,7 +40,7 @@ func _process(delta: float) -> void:
 
 
 func _distance(from: Vector3, to: Vector3) -> float:
-	return sqrt(pow(to.x - from.x, 2) + pow(to.y - from.y, 2))
+	return sqrt(pow(to.x - from.x, 2) + pow(to.z - from.z, 2))
 
 
 func draw_logic() -> void:
