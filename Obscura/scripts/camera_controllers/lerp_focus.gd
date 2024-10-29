@@ -11,6 +11,7 @@ extends CameraControllerBase
 
 var SNAP_DISTANCE := 0.5
 var _timer:Timer = null
+var _catching_up_active = false
 
 
 func _ready() -> void:
@@ -34,24 +35,32 @@ func _process(delta: float) -> void:
 	if x_distance <= SNAP_DISTANCE:
 		position.x = target.position.x
 		x_dir = 0
+	elif target.velocity.x > 0:
+		x_dir = 1
+	elif target.velocity.x < 0:
+		x_dir = -1
 	else:
-		x_dir = 1 if target.velocity.x > 0 else -1
+		x_dir = 1 if target.position.x > position.x else -1
 
 	if z_distance <= SNAP_DISTANCE:
 		position.z = target.position.z
 		z_dir = 0
+	elif target.velocity.z > 0:
+		z_dir = 1
+	elif target.velocity.z < 0:
+		z_dir = -1
 	else:
-		z_dir = 1 if target.velocity.z > 0 else -1
-	
+		z_dir = 1 if target.position.z > position.z else -1
+		
 	# Done catching up -- the camera is aligned with vessel!
-	#if x_dir == 0 and z_dir == 0:
-		#_pause_timer()
-	#elif _timer != null and (target.velocity.x != 0 or target.velocity.z != 0):
-		## Vessel began moving before catchup delay duration timer was up, so ignore timer
-		## TODO  
-		#print("WE ARE MOVING EARLY!!!")
-		#_timer.stop()
-		#_timer = null
+	if x_dir == 0 and z_dir == 0:
+		_pause_timer()
+		_catching_up_active = false
+	elif _timer != null and (target.velocity.x != 0 or target.velocity.z != 0):
+		# Vessel began moving before catchup delay duration timer was up, so ignore timer
+		_timer.stop()
+		_timer = null
+		_catching_up_active = false
 
 	# Vessel is ahead but is still moving -- need to immediately match its position to not be behind
 	# But also add SNAP_DISTANCE (in the correct direction) so that the camera isn't so close that it
@@ -72,38 +81,25 @@ func _process(delta: float) -> void:
 
 	# Stop being ahead of vessel, and turn back around back towards the vessel instead
 	if target.velocity.is_zero_approx():
-		print("Catching up...")
-		speed = catchup_speed * target.BASE_SPEED
-
-		if x_dir != 0:
-				x_dir = 1 if target.position.x > position.x else -1
+		if _timer == null and (target.position.x != position.x or target.position.z != position.z):			
+			_timer = Timer.new()
+			add_child(_timer)
+			_timer.one_shot = true
 			
-		if z_dir != 0:
-			z_dir = 1 if target.position.z > position.z else -1
-		#if _timer == null and (target.position.x != position.x or target.position.z != position.z):			
-			#print("Starting timer...")
-			#_timer = Timer.new()
-			#add_child(_timer)
-			#_timer.one_shot = true
-			#
-			#_timer.start(catchup_delay_duration)
-#
-		## Start catching up
-		#if _timer != null and _timer.is_stopped():
-			#print("Catching up...")
-			#speed = catchup_speed * target.BASE_SPEED
-#
-			#if x_dir != 0:
-				#x_dir = 1 if target.position.x > position.x else -1
-			#
-			#if z_dir != 0:
-				#z_dir = 1 if target.position.z > position.z else -1
-		#else: # Don't start catching up yet
-			## TODO maybe just return early?
-			#x_dir = 0
-			#z_dir = 0
+			_timer.start(catchup_delay_duration)
 
-	if x_dir != 0 or z_dir != 0:
+		# Start catching up
+		if _timer != null:
+			# Timer is running
+			if not _timer.paused and not _timer.is_stopped():
+				x_dir = 0
+				z_dir = 0
+			if _timer.is_stopped():
+				_timer.paused = false
+				_catching_up_active = true
+				speed = catchup_speed * target.BASE_SPEED
+
+	if (x_dir != 0 or z_dir != 0) and !_catching_up_active:
 		_timer = null
 
 	# Slow down a bit
@@ -118,7 +114,7 @@ func _process(delta: float) -> void:
 		velocity.z = target.velocity.z if target.velocity.z != 0 else z_dir * target.speed
 	else:
 		velocity.z = z_dir * speed
-	
+
 	global_position.x += velocity.x * delta
 	global_position.z += velocity.z * delta
 
