@@ -99,6 +99,8 @@ func _process(delta: float) -> void:
 				_catching_up_active = true
 				speed = catchup_speed * target.BASE_SPEED
 
+	# If camera is moving and it's not because the camera is trying to catch up, 
+	# then totally reset timer
 	if (x_dir != 0 or z_dir != 0) and !_catching_up_active:
 		_timer = null
 

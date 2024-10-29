@@ -1,14 +1,17 @@
 class_name FourWaySpeedupPushZone
 extends CameraControllerBase
 
-
-@export var box_width:float = 10.0
-@export var box_height:float = 10.0
+@export var push_ratio:float
+@export var pushbox_top_left:Vector2
+@export var pushbox_bottom_right:Vector2
+@export var speedup_zone_top_left:Vector2
+@export var speedup_zone_bottom_right:Vector2
 
 
 func _ready() -> void:
 	super()
-	position = target.position
+	draw_camera_logic = true
+	global_position = target.global_position
 	
 
 func _process(delta: float) -> void:
@@ -18,27 +21,56 @@ func _process(delta: float) -> void:
 	if draw_camera_logic:
 		draw_logic()
 	
-	var tpos = target.global_position
-	var cpos = global_position
+	var tpos := target.global_position
+	#var tleft := tpos.x - target.WIDTH / 2.0
+	#var tright := tpos.x + target.WIDTH / 2.0
+	#var ttop := tpos.z + target.HEIGHT / 2.0
+	#var tbottom := tpos.z - target.HEIGHT / 2.0
+	var pushbox_left := global_position.x + pushbox_top_left.x
+	var pushbox_right := global_position.x + pushbox_bottom_right.x
+	var pushbox_top := global_position.z + pushbox_top_left.y
+	var pushbox_bottom := global_position.z + pushbox_bottom_right.y
+	var speedup_left := global_position.x + speedup_zone_top_left.x
+	var speedup_right := global_position.x + speedup_zone_bottom_right.x
+	var speedup_top := global_position.z + speedup_zone_top_left.y
+	var speedup_bottom := global_position.z + speedup_zone_bottom_right.y
+
+	# Boundary checks
 	
-	#boundary checks
-	#left
-	var diff_between_left_edges = (tpos.x - target.WIDTH / 2.0) - (cpos.x - box_width / 2.0)
-	if diff_between_left_edges < 0:
-		global_position.x += diff_between_left_edges
-	#right
-	var diff_between_right_edges = (tpos.x + target.WIDTH / 2.0) - (cpos.x + box_width / 2.0)
-	if diff_between_right_edges > 0:
-		global_position.x += diff_between_right_edges
-	#top
-	var diff_between_top_edges = (tpos.z - target.HEIGHT / 2.0) - (cpos.z - box_height / 2.0)
-	if diff_between_top_edges < 0:
-		global_position.z += diff_between_top_edges
-	#bottom
-	var diff_between_bottom_edges = (tpos.z + target.HEIGHT / 2.0) - (cpos.z + box_height / 2.0)
-	if diff_between_bottom_edges > 0:
-		global_position.z += diff_between_bottom_edges
+	#region
+	# Vessel is beyond speedup zone's left boundary
+	if tpos.x < speedup_left and tpos.x < pushbox_left and target.velocity.x < 0:
+		print("moving camera to the left by %f" % (target.velocity.x * delta))
+		global_position.x += target.velocity.x * delta
+	
+	if tpos.x > speedup_right and tpos.x > pushbox_right and target.velocity.x > 0:
+		print("moving camera to the right by %f" % (target.velocity.x * delta))
+		global_position.x += target.velocity.x * delta
+
+	if tpos.z > speedup_top and tpos.z > pushbox_top and target.velocity.z > 0:
+		print("moving camera to the top by %f" % (target.velocity.z * delta))
+		global_position.z += target.velocity.z * delta
+
+	if tpos.z < speedup_bottom and tpos.z < pushbox_bottom and target.velocity.z < 0:
+		print("moving camera to the bottom by %f" % (target.velocity.z * delta))
+		global_position.z += target.velocity.x * delta
+	#endregion
+
+	#region
+	# Vessel is in push zone
+	if (
+		(tpos.x < pushbox_left and tpos.x > speedup_left) 
+		or (tpos.x > pushbox_right and tpos.x < speedup_right)
+	):
+		global_position.x += push_ratio * target.velocity.x * delta
 		
+	if (
+		(tpos.z > pushbox_top and tpos.z < speedup_top) 
+		or (tpos.z < pushbox_bottom and tpos.z > speedup_bottom)
+	):
+		global_position.z += push_ratio * target.velocity.z * delta
+	#endregion
+
 	super(delta)
 
 
@@ -50,23 +82,41 @@ func draw_logic() -> void:
 	mesh_instance.mesh = immediate_mesh
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	
-	var left:float = -box_width / 2
-	var right:float = box_width / 2
-	var top:float = -box_height / 2
-	var bottom:float = box_height / 2
+	var pushbox_left := pushbox_top_left.x
+	var pushbox_right := pushbox_bottom_right.x
+	var pushbox_top := pushbox_top_left.y
+	var pushbox_bottom := pushbox_bottom_right.y
+	var speedup_left := speedup_zone_top_left.x
+	var speedup_right := speedup_zone_bottom_right.x
+	var speedup_top := speedup_zone_top_left.y
+	var speedup_bottom := speedup_zone_bottom_right.y
 	
 	immediate_mesh.surface_begin(Mesh.PRIMITIVE_LINES, material)
-	immediate_mesh.surface_add_vertex(Vector3(right, 0, top))
-	immediate_mesh.surface_add_vertex(Vector3(right, 0, bottom))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_right, 0, pushbox_top))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_right, 0, pushbox_bottom))
 	
-	immediate_mesh.surface_add_vertex(Vector3(right, 0, bottom))
-	immediate_mesh.surface_add_vertex(Vector3(left, 0, bottom))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_right, 0, pushbox_bottom))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_left, 0, pushbox_bottom))
 	
-	immediate_mesh.surface_add_vertex(Vector3(left, 0, bottom))
-	immediate_mesh.surface_add_vertex(Vector3(left, 0, top))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_left, 0, pushbox_bottom))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_left, 0, pushbox_top))
 	
-	immediate_mesh.surface_add_vertex(Vector3(left, 0, top))
-	immediate_mesh.surface_add_vertex(Vector3(right, 0, top))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_left, 0, pushbox_top))
+	immediate_mesh.surface_add_vertex(Vector3(pushbox_right, 0, pushbox_top))
+	immediate_mesh.surface_end()
+	
+	immediate_mesh.surface_begin(Mesh.PRIMITIVE_LINES, material)
+	immediate_mesh.surface_add_vertex(Vector3(speedup_right, 0, speedup_top))
+	immediate_mesh.surface_add_vertex(Vector3(speedup_right, 0, speedup_bottom))
+	
+	immediate_mesh.surface_add_vertex(Vector3(speedup_right, 0, speedup_bottom))
+	immediate_mesh.surface_add_vertex(Vector3(speedup_left, 0, speedup_bottom))
+	
+	immediate_mesh.surface_add_vertex(Vector3(speedup_left, 0, speedup_bottom))
+	immediate_mesh.surface_add_vertex(Vector3(speedup_left, 0, speedup_top))
+	
+	immediate_mesh.surface_add_vertex(Vector3(speedup_left, 0, speedup_top))
+	immediate_mesh.surface_add_vertex(Vector3(speedup_right, 0, speedup_top))
 	immediate_mesh.surface_end()
 
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
