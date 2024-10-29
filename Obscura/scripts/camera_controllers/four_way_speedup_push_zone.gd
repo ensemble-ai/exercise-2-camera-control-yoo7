@@ -22,10 +22,10 @@ func _process(delta: float) -> void:
 		draw_logic()
 	
 	var tpos := target.global_position
-	#var tleft := tpos.x - target.WIDTH / 2.0
-	#var tright := tpos.x + target.WIDTH / 2.0
-	#var ttop := tpos.z + target.HEIGHT / 2.0
-	#var tbottom := tpos.z - target.HEIGHT / 2.0
+	var tleft := tpos.x + target.WIDTH / 2.0
+	var tright := tpos.x - target.WIDTH / 2.0
+	var ttop := tpos.z - target.HEIGHT / 2.0
+	var tbottom := tpos.z + target.HEIGHT / 2.0
 	var pushbox_left := global_position.x + pushbox_top_left.x
 	var pushbox_right := global_position.x + pushbox_bottom_right.x
 	var pushbox_top := global_position.z + pushbox_top_left.y
@@ -36,24 +36,23 @@ func _process(delta: float) -> void:
 	var speedup_bottom := global_position.z + speedup_zone_bottom_right.y
 
 	# Boundary checks
-	
 	#region
 	# Vessel is beyond speedup zone's left boundary
-	if tpos.x < speedup_left and tpos.x < pushbox_left and target.velocity.x < 0:
+	if tleft < speedup_left and tleft < pushbox_left and target.velocity.x < 0:
 		print("moving camera to the left by %f" % (target.velocity.x * delta))
 		global_position.x += target.velocity.x * delta
 	
-	if tpos.x > speedup_right and tpos.x > pushbox_right and target.velocity.x > 0:
+	if tright > speedup_right and tright > pushbox_right and target.velocity.x > 0:
 		print("moving camera to the right by %f" % (target.velocity.x * delta))
 		global_position.x += target.velocity.x * delta
 
-	if tpos.z > speedup_top and tpos.z > pushbox_top and target.velocity.z > 0:
+	if ttop > speedup_top and ttop > pushbox_top and target.velocity.z > 0:
 		print("moving camera to the top by %f" % (target.velocity.z * delta))
 		global_position.z += target.velocity.z * delta
 
-	if tpos.z < speedup_bottom and tpos.z < pushbox_bottom and target.velocity.z < 0:
+	if tbottom < speedup_bottom and tbottom < pushbox_bottom and target.velocity.z < 0:
 		print("moving camera to the bottom by %f" % (target.velocity.z * delta))
-		global_position.z += target.velocity.x * delta
+		global_position.z += target.velocity.z * delta
 	#endregion
 
 	#region
