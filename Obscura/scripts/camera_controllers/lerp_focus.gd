@@ -9,7 +9,7 @@ extends CameraControllerBase
 @export var box_width:float = 10.0
 @export var box_height:float = 10.0
 
-var SNAP_DISTANCE := 0.4
+var SNAP_DISTANCE := 0.5
 var _timer:Timer = null
 
 
@@ -28,28 +28,30 @@ func _process(delta: float) -> void:
 
 	var x_dir:int
 	var z_dir:int
+	var x_distance:float = abs(target.position.x - position.x)
+	var z_distance:float = abs(target.position.z - position.z)
 
-	if abs(target.position.x - position.x) <= SNAP_DISTANCE:
+	if x_distance <= SNAP_DISTANCE:
 		position.x = target.position.x
 		x_dir = 0
 	else:
 		x_dir = 1 if target.velocity.x > 0 else -1
 
-	if abs(target.position.z - position.z) <= SNAP_DISTANCE:
+	if z_distance <= SNAP_DISTANCE:
 		position.z = target.position.z
 		z_dir = 0
 	else:
 		z_dir = 1 if target.velocity.z > 0 else -1
 	
 	# Done catching up -- the camera is aligned with vessel!
-	if x_dir == 0 and z_dir == 0:
-		_pause_timer()
-	elif _timer != null and (target.velocity.x != 0 or target.velocity.z != 0):
-		# Vessel began moving before catchup delay duration timer was up, so ignore timer
-		# TODO  
-		print("WE ARE MOVING EARLY!!!")
-		_timer.stop()
-		_timer = null
+	#if x_dir == 0 and z_dir == 0:
+		#_pause_timer()
+	#elif _timer != null and (target.velocity.x != 0 or target.velocity.z != 0):
+		## Vessel began moving before catchup delay duration timer was up, so ignore timer
+		## TODO  
+		#print("WE ARE MOVING EARLY!!!")
+		#_timer.stop()
+		#_timer = null
 
 	# Vessel is ahead but is still moving -- need to immediately match its position to not be behind
 	# But also add SNAP_DISTANCE (in the correct direction) so that the camera isn't so close that it
@@ -70,47 +72,63 @@ func _process(delta: float) -> void:
 
 	# Stop being ahead of vessel, and turn back around back towards the vessel instead
 	if target.velocity.is_zero_approx():
-		if _timer == null and (target.position.x != position.x or target.position.z != position.z):			
-			print("Starting timer...")
-			_timer = Timer.new()
-			add_child(_timer)
-			_timer.one_shot = true
-			
-			_timer.start(catchup_delay_duration)
+		print("Catching up...")
+		speed = catchup_speed * target.BASE_SPEED
 
-		# Start catching up
-		if _timer != null and _timer.is_stopped():
-			print("Catching up...")
-			speed = catchup_speed * target.BASE_SPEED
-
-			if x_dir != 0:
+		if x_dir != 0:
 				x_dir = 1 if target.position.x > position.x else -1
 			
-			if z_dir != 0:
-				z_dir = 1 if target.position.z > position.z else -1
-		else: # Don't start catching up yet
-			# TODO maybe just return early?
-			x_dir = 0
-			z_dir = 0
+		if z_dir != 0:
+			z_dir = 1 if target.position.z > position.z else -1
+		#if _timer == null and (target.position.x != position.x or target.position.z != position.z):			
+			#print("Starting timer...")
+			#_timer = Timer.new()
+			#add_child(_timer)
+			#_timer.one_shot = true
+			#
+			#_timer.start(catchup_delay_duration)
+#
+		## Start catching up
+		#if _timer != null and _timer.is_stopped():
+			#print("Catching up...")
+			#speed = catchup_speed * target.BASE_SPEED
+#
+			#if x_dir != 0:
+				#x_dir = 1 if target.position.x > position.x else -1
+			#
+			#if z_dir != 0:
+				#z_dir = 1 if target.position.z > position.z else -1
+		#else: # Don't start catching up yet
+			## TODO maybe just return early?
+			#x_dir = 0
+			#z_dir = 0
 
-	# Slow down a bit
-	if _distance(position, target.position) >= leash_distance:
-		speed = target.speed
-	
-	if x_dir != 0 and z_dir != 0:
+	if x_dir != 0 or z_dir != 0:
 		_timer = null
 
-	global_position.x += x_dir * speed * delta
-	global_position.z += z_dir * speed * delta
+	# Slow down a bit
+	var velocity := Vector3(0.0, 0.0, 0.0)
+	
+	if x_distance >= leash_distance:
+		velocity.x = target.velocity.x if target.velocity.x != 0 else x_dir * target.speed
+	else:
+		velocity.x = x_dir * speed
+	
+	if z_distance >= leash_distance:
+		velocity.z = target.velocity.z if target.velocity.z != 0 else z_dir * target.speed
+	else:
+		velocity.z = z_dir * speed
+	
+	global_position.x += velocity.x * delta
+	global_position.z += velocity.z * delta
 
 	super(delta)
 
-
+# TODO
 func _distance(from: Vector3, to: Vector3) -> float:
 	return sqrt(pow(to.x - from.x, 2) + pow(to.z - from.z, 2))
 
 func _pause_timer() -> void:
-	print("Pausing timer...")
 	if _timer != null:
 		_timer.paused = true
 

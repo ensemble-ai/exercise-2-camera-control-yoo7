@@ -25,12 +25,14 @@ func _process(delta: float) -> void:
 
 	var x_dir = 1 if target.position.x > position.x else -1
 	var z_dir = 1 if target.position.z > position.z else -1
+	var x_distance:float = abs(target.position.x - position.x)
+	var z_distance:float = abs(target.position.z - position.z)
 	
-	if abs(target.position.x - position.x) <= SNAP_DISTANCE:
+	if x_distance <= SNAP_DISTANCE:
 		position.x = target.position.x
 		x_dir = 0
 	
-	if abs(target.position.z - position.z) <= SNAP_DISTANCE:
+	if z_distance <= SNAP_DISTANCE:
 		position.z = target.position.z
 		z_dir = 0
 	
@@ -38,12 +40,21 @@ func _process(delta: float) -> void:
 
 	if target.velocity.is_zero_approx():
 		speed = catchup_speed * target.BASE_SPEED
-	elif _distance(position, target.position) >= leash_distance:
-		speed = target.speed
 
-	# Camera moves in direction of target
-	global_position.x += x_dir * speed * delta
-	global_position.z += z_dir * speed * delta
+	var velocity := Vector3(0.0, 0.0, 0.0)
+	
+	if x_distance >= leash_distance:
+		velocity.x = target.velocity.x if target.velocity.x != 0 else x_dir * target.speed
+	else:
+		velocity.x = x_dir * speed
+	
+	if z_distance >= leash_distance:
+		velocity.z = target.velocity.z if target.velocity.z != 0 else z_dir * target.speed
+	else:
+		velocity.z = z_dir * speed
+	
+	global_position.x += velocity.x * delta
+	global_position.z += velocity.z * delta
 
 	super(delta)
 
