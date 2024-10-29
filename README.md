@@ -1,3 +1,5 @@
+# Stage 1 file is `position_lock.gd`, stage 2 is `framing_horizontal_autoscroll.gd`, stage 3 is `position_lerp.gd`, stage 4 is `lerp_focus.gd`, and stage 5 is `four_way_speedup_push_zone.gd`
+
 # Camera Control Exercise
 
 ## Description
