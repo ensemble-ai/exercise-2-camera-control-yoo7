@@ -22,33 +22,34 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if !current:
 		return
-	
+
 	if draw_camera_logic:
 		draw_logic()
 
 	var x_dir:int
 	var z_dir:int
-	
+
 	if abs(target.position.x - position.x) <= SNAP_DISTANCE:
 		position.x = target.position.x
 		x_dir = 0
-		print("snapping x")
-		#_deactivate_timer()
 	else:
 		x_dir = 1 if target.velocity.x > 0 else -1
-	
+
 	if abs(target.position.z - position.z) <= SNAP_DISTANCE:
 		position.z = target.position.z
 		z_dir = 0
-		print("snapping z")
-		#_deactivate_timer()
 	else:
 		z_dir = 1 if target.velocity.z > 0 else -1
 	
-	# Vessel began moving before catchup delay duration timer was up, so ignore timer
-	#if _timer != null and (target.velocity.x != 0 or target.velocity.z != 0):
-		#_deactivate_timer()
-		#print("stopping timer early")
+	# Done catching up -- the camera is aligned with vessel!
+	if x_dir == 0 and z_dir == 0:
+		_pause_timer()
+	elif _timer != null and (target.velocity.x != 0 or target.velocity.z != 0):
+		# Vessel began moving before catchup delay duration timer was up, so ignore timer
+		# TODO  
+		print("WE ARE MOVING EARLY!!!")
+		_timer.stop()
+		_timer = null
 
 	# Vessel is ahead but is still moving -- need to immediately match its position to not be behind
 	# But also add SNAP_DISTANCE (in the correct direction) so that the camera isn't so close that it
@@ -69,40 +70,35 @@ func _process(delta: float) -> void:
 
 	# Stop being ahead of vessel, and turn back around back towards the vessel instead
 	if target.velocity.is_zero_approx():
-		speed = catchup_speed * target.BASE_SPEED
+		if _timer == null and (target.position.x != position.x or target.position.z != position.z):			
+			print("Starting timer...")
+			_timer = Timer.new()
+			add_child(_timer)
+			_timer.one_shot = true
+			
+			_timer.start(catchup_delay_duration)
 
-		if x_dir != 0:
-			x_dir = 1 if target.position.x > position.x else -1
-		
-		if z_dir != 0:
-			z_dir = 1 if target.position.z > position.z else -1
-		#if _timer == null:
-			#print("Starting timer...")
-			#_timer = Timer.new()
-			#add_child(_timer)
-			#_timer.one_shot = true
-			#
-			#_timer.start(catchup_delay_duration)
-#
-		## Start catching up
-		#if _timer.is_stopped():
-			#print("Catching up...")
-			#speed = catchup_speed * target.BASE_SPEED
-#
-			#if x_dir != 0:
-				#x_dir = 1 if target.position.x > position.x else -1
-			#
-			#if z_dir != 0:
-				#z_dir = 1 if target.position.z > position.z else -1
-		#else: # Don't start catching up yet
-			## TODO maybe just return early?
-			##x_dir = 0
-			##z_dir = 0
-			#return
+		# Start catching up
+		if _timer != null and _timer.is_stopped():
+			print("Catching up...")
+			speed = catchup_speed * target.BASE_SPEED
+
+			if x_dir != 0:
+				x_dir = 1 if target.position.x > position.x else -1
+			
+			if z_dir != 0:
+				z_dir = 1 if target.position.z > position.z else -1
+		else: # Don't start catching up yet
+			# TODO maybe just return early?
+			x_dir = 0
+			z_dir = 0
 
 	# Slow down a bit
 	if _distance(position, target.position) >= leash_distance:
 		speed = target.speed
+	
+	if x_dir != 0 and z_dir != 0:
+		_timer = null
 
 	global_position.x += x_dir * speed * delta
 	global_position.z += z_dir * speed * delta
@@ -113,10 +109,10 @@ func _process(delta: float) -> void:
 func _distance(from: Vector3, to: Vector3) -> float:
 	return sqrt(pow(to.x - from.x, 2) + pow(to.z - from.z, 2))
 
-func _deactivate_timer() -> void:
+func _pause_timer() -> void:
+	print("Pausing timer...")
 	if _timer != null:
-		_timer.stop()
-		_timer = null
+		_timer.paused = true
 
 func draw_logic() -> void:
 	var mesh_instance := MeshInstance3D.new()
