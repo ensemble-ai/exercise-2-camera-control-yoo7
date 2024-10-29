@@ -1,7 +1,6 @@
 class_name PositionLock
 extends CameraControllerBase
 
-
 @export var box_width:float = 10.0
 @export var box_height:float = 10.0
 
@@ -10,7 +9,7 @@ func _ready() -> void:
 	super()
 	draw_camera_logic = true
 	global_position = target.global_position
-	
+
 
 func _process(delta: float) -> void:
 	if !current:
@@ -18,7 +17,8 @@ func _process(delta: float) -> void:
 	
 	if draw_camera_logic:
 		draw_logic()
-	
+
+	# Camera is always same positoin as target
 	position = target.position
 	
 	super(delta)

@@ -1,20 +1,19 @@
 class_name PositionLerp
 extends CameraControllerBase
 
-
+var SNAP_DISTANCE := 0.1
 @export var follow_speed:float  # To be used as a ratio of the player's current speed
 @export var catchup_speed:float
 @export var leash_distance:float
 @export var box_width:float = 10.0
 @export var box_height:float = 10.0
 
-var SNAP_DISTANCE := 0.1
 
 func _ready() -> void:
 	super()
 	draw_camera_logic = true
 	global_position = target.global_position
-	
+
 
 func _process(delta: float) -> void:
 	if !current:
@@ -23,44 +22,54 @@ func _process(delta: float) -> void:
 	if draw_camera_logic:
 		draw_logic()
 
+	# x or z direction camera should move in should be in direction of target (following!)
 	var x_dir = 1 if target.position.x > position.x else -1
 	var z_dir = 1 if target.position.z > position.z else -1
 	var x_distance:float = abs(target.position.x - position.x)
 	var z_distance:float = abs(target.position.z - position.z)
 	
+	#region
 	if x_distance <= SNAP_DISTANCE:
+		# Close enough to target in x direction, so snap to the target's x position
+		# No need to move camera in the x direction then, so x_dir = 0
 		position.x = target.position.x
 		x_dir = 0
 	
+	# Same thing but in z direction
 	if z_distance <= SNAP_DISTANCE:
 		position.z = target.position.z
 		z_dir = 0
+	#endregion
 	
+	# Adjust the speed as needed depending on whether the target is moving
 	var speed := follow_speed * target.speed
 
 	if target.velocity.is_zero_approx():
 		speed = catchup_speed * target.BASE_SPEED
 
+	#region
+	# Determine the velocity that camera should move in
 	var velocity := Vector3(0.0, 0.0, 0.0)
 	
 	if x_distance >= leash_distance:
+		# Camera is too far behind, so move at vessel's velocity
+		# But if vessel is not moving, we are trying to catch up
 		velocity.x = target.velocity.x if target.velocity.x != 0 else x_dir * target.speed
 	else:
 		velocity.x = x_dir * speed
 	
+	# Same thing but z direction
 	if z_distance >= leash_distance:
 		velocity.z = target.velocity.z if target.velocity.z != 0 else z_dir * target.speed
 	else:
 		velocity.z = z_dir * speed
-	
+	#endregion
+
+	# Actually update camera position
 	global_position.x += velocity.x * delta
 	global_position.z += velocity.z * delta
 
 	super(delta)
-
-
-func _distance(from: Vector3, to: Vector3) -> float:
-	return sqrt(pow(to.x - from.x, 2) + pow(to.z - from.z, 2))
 
 
 func draw_logic() -> void:

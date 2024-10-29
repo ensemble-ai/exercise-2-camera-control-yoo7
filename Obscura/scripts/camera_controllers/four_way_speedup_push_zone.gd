@@ -12,15 +12,15 @@ func _ready() -> void:
 	super()
 	draw_camera_logic = true
 	global_position = target.global_position
-	
+
 
 func _process(delta: float) -> void:
 	if !current:
 		return
-	
+
 	if draw_camera_logic:
 		draw_logic()
-	
+
 	var tpos := target.global_position
 	var tleft := tpos.x + target.WIDTH / 2.0
 	var tright := tpos.x - target.WIDTH / 2.0
@@ -37,32 +37,32 @@ func _process(delta: float) -> void:
 
 	# Boundary checks
 	#region
-	# Vessel is beyond speedup zone's left boundary
+	# Vessel is beyond speedup zone's left boundary and moving left
 	if tleft < speedup_left and tleft < pushbox_left and target.velocity.x < 0:
-		print("moving camera to the left by %f" % (target.velocity.x * delta))
 		global_position.x += target.velocity.x * delta
 	
+	# Vessel is beyond speedup zone's right boundary and moving right
 	if tright > speedup_right and tright > pushbox_right and target.velocity.x > 0:
-		print("moving camera to the right by %f" % (target.velocity.x * delta))
 		global_position.x += target.velocity.x * delta
 
+	# Beyond speedup zone's top boundary and moving up
 	if ttop > speedup_top and ttop > pushbox_top and target.velocity.z > 0:
-		print("moving camera to the top by %f" % (target.velocity.z * delta))
 		global_position.z += target.velocity.z * delta
 
+	# Beyond speedup zone's bottom boundary and moving down
 	if tbottom < speedup_bottom and tbottom < pushbox_bottom and target.velocity.z < 0:
-		print("moving camera to the bottom by %f" % (target.velocity.z * delta))
 		global_position.z += target.velocity.z * delta
 	#endregion
 
 	#region
-	# Vessel is in push zone
+	# Vessel is inside the left or right side of the push zone 
 	if (
 		(tpos.x < pushbox_left and tpos.x > speedup_left) 
 		or (tpos.x > pushbox_right and tpos.x < speedup_right)
 	):
 		global_position.x += push_ratio * target.velocity.x * delta
 		
+	# Vessel is inside the top or bottom side of the push zone
 	if (
 		(tpos.z > pushbox_top and tpos.z < speedup_top) 
 		or (tpos.z < pushbox_bottom and tpos.z > speedup_bottom)

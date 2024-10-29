@@ -1,7 +1,6 @@
 class_name PushBox
 extends CameraControllerBase
 
-
 @export var box_width:float = 10.0
 @export var box_height:float = 10.0
 
@@ -10,7 +9,7 @@ func _ready() -> void:
 	super()
 	draw_camera_logic = true
 	global_position = target.global_position
-	
+
 
 func _process(delta: float) -> void:
 	if !current:

@@ -1,15 +1,16 @@
-class_name Framing
+class_name FramingHorizontalAutoscroll
 extends CameraControllerBase
 
 @export var top_left := Vector2(-5, 5)
 @export var bottom_right := Vector2(5, -5)
 @export var autoscroll_speed := Vector3(10, 0, 4)
 
+
 func _ready() -> void:
 	super()
 	draw_camera_logic = true
 	global_position = target.global_position
-	
+
 
 func _process(delta: float) -> void:
 	if !current:
