@@ -158,10 +158,6 @@ func _process(delta: float) -> void:
 	super(delta)
 
 
-func _pause_timer() -> void:
-	if _timer != null:
-		_timer.paused = true
-
 func draw_logic() -> void:
 	var mesh_instance := MeshInstance3D.new()
 	var immediate_mesh := ImmediateMesh.new()
@@ -194,3 +190,8 @@ func draw_logic() -> void:
 	#mesh is freed after one update of _process
 	await get_tree().process_frame
 	mesh_instance.queue_free()
+
+
+func _pause_timer() -> void:
+	if _timer != null:
+		_timer.paused = true
